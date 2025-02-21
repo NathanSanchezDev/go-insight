@@ -1,0 +1,18 @@
+# Binaries
+go-insight
+
+# Dependency directories
+vendor/
+
+# OS generated files
+.DS_Store
+
+# IDE files
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Environment files
+.env
