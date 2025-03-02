@@ -1,20 +1,25 @@
 package main
 
 import (
+	"fmt"
+	"log"
+
 	"github.com/NathanSanchezDev/go-insight/internal/api"
-	"github.com/gin-gonic/gin"
+	"github.com/NathanSanchezDev/go-insight/internal/db"
 )
 
 func main() {
-	r := gin.Default()
+	db.InitDB()
 
-	metricsHandler := api.NewMetricsHandler()
+	api.InsertLog("auth-service", "INFO", "User login successful")
 
-	r.GET("/health", func(c *gin.Context) {
-		c.JSON(200, gin.H{"status": "ok"})
-	})
+	logs, err := api.GetLogs()
+	if err != nil {
+		log.Fatal("❌ Failed to fetch logs:", err)
+	}
 
-	r.POST("/collect", metricsHandler.CollectMetrics)
-
-	r.Run(":8080")
+	fmt.Println("\n📜 Retrieved Logs:")
+	for _, logEntry := range logs {
+		fmt.Printf("[%s] %s - %s: %s\n", logEntry.Timestamp, logEntry.ServiceName, logEntry.LogLevel, logEntry.Message)
+	}
 }
