@@ -2,23 +2,13 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"log"
+	"net/http"
 
 	"github.com/NathanSanchezDev/go-insight/internal/db"
 	"github.com/NathanSanchezDev/go-insight/internal/models"
 )
-
-func InsertLog(service, level, message string) {
-	query := `INSERT INTO logs (service_name, log_level, message) VALUES ($1, $2, $3)`
-
-	_, err := db.DB.ExecContext(context.Background(), query, service, level, message)
-	if err != nil {
-		log.Println("❌ Error inserting log:", err)
-		return
-	}
-
-	log.Println("✅ Log inserted successfully!")
-}
 
 func GetLogs() ([]models.Log, error) {
 	query := `SELECT id, service_name, log_level, message, timestamp, trace_id, span_id, metadata FROM logs`
@@ -51,4 +41,15 @@ func GetLogs() ([]models.Log, error) {
 	}
 
 	return logs, nil
+}
+
+func GetLogsHandler(w http.ResponseWriter, r *http.Request) {
+	logs, err := GetLogs()
+	if err != nil {
+		http.Error(w, "Failed to fetch logs", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(logs)
 }
