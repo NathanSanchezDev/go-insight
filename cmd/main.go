@@ -3,23 +3,21 @@ package main
 import (
 	"fmt"
 	"log"
+	"net/http"
 
 	"github.com/NathanSanchezDev/go-insight/internal/api"
 	"github.com/NathanSanchezDev/go-insight/internal/db"
+	"github.com/gorilla/mux"
 )
 
 func main() {
 	db.InitDB()
 
-	api.InsertLog("auth-service", "INFO", "User login successful")
+	router := mux.NewRouter()
+	router.HandleFunc("/metrics", api.GetMetricsHandler).Methods("GET")
+	router.HandleFunc("/logs", api.GetLogsHandler).Methods("GET")
 
-	logs, err := api.GetLogs()
-	if err != nil {
-		log.Fatal("❌ Failed to fetch logs:", err)
-	}
-
-	fmt.Println("\n📜 Retrieved Logs:")
-	for _, logEntry := range logs {
-		fmt.Printf("[%s] %s - %s: %s\n", logEntry.Timestamp, logEntry.ServiceName, logEntry.LogLevel, logEntry.Message)
-	}
+	port := 8080
+	fmt.Printf("🚀 Server started on port %d\n", port)
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), router))
 }
