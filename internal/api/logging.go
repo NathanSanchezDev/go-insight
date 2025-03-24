@@ -3,6 +3,8 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -53,6 +55,32 @@ func GetLogs() ([]models.Log, error) {
 	}
 
 	return logs, nil
+}
+
+func validateLogEntry(logEntry *models.Log) error {
+	if logEntry.ServiceName == "" {
+		return errors.New("service name is required")
+	}
+
+	if logEntry.Message == "" {
+		return errors.New("message is required")
+	}
+
+	if logEntry.LogLevel != "" {
+		validLevels := map[string]bool{
+			"DEBUG": true,
+			"INFO":  true,
+			"WARN":  true,
+			"ERROR": true,
+			"FATAL": true,
+		}
+
+		if !validLevels[logEntry.LogLevel] {
+			return fmt.Errorf("invalid log level: %s", logEntry.LogLevel)
+		}
+	}
+
+	return nil
 }
 
 func PostLog(logEntry *models.Log) error {
@@ -129,8 +157,8 @@ func PostLogHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if logEntry.ServiceName == "" || logEntry.Message == "" {
-		http.Error(w, "Service name and message are required", http.StatusBadRequest)
+	if err := validateLogEntry(&logEntry); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
