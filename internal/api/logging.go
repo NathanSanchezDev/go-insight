@@ -24,6 +24,8 @@ func GetLogs() ([]models.Log, error) {
 
 	for rows.Next() {
 		var logEntry models.Log
+		var metadataBytes []byte
+
 		err := rows.Scan(
 			&logEntry.ID,
 			&logEntry.ServiceName,
@@ -32,12 +34,21 @@ func GetLogs() ([]models.Log, error) {
 			&logEntry.Timestamp,
 			&logEntry.TraceID,
 			&logEntry.SpanID,
-			&logEntry.Metadata,
+			&metadataBytes,
 		)
 		if err != nil {
 			log.Println("❌ Error scanning log row:", err)
 			continue
 		}
+
+		if len(metadataBytes) > 0 {
+			rawJSON := json.RawMessage(metadataBytes)
+			logEntry.Metadata = &rawJSON
+		} else {
+			emptyJSON := json.RawMessage("{}")
+			logEntry.Metadata = &emptyJSON
+		}
+
 		logs = append(logs, logEntry)
 	}
 
@@ -61,8 +72,12 @@ func PostLog(logEntry *models.Log) error {
 		logEntry.SpanID.Valid = true
 	}
 
-	if len(logEntry.Metadata) == 0 {
-		logEntry.Metadata = json.RawMessage("{}")
+	if logEntry.Metadata == nil {
+		emptyJSON := json.RawMessage("{}")
+		logEntry.Metadata = &emptyJSON
+	} else if len(*logEntry.Metadata) == 0 {
+		emptyJSON := json.RawMessage("{}")
+		logEntry.Metadata = &emptyJSON
 	}
 
 	query := `INSERT INTO logs 
