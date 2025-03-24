@@ -16,6 +16,7 @@ func main() {
 	router := mux.NewRouter()
 	router.HandleFunc("/metrics", api.GetMetricsHandler).Methods("GET")
 	router.HandleFunc("/logs", api.GetLogsHandler).Methods("GET")
+	router.HandleFunc("/logs", api.PostLogHandler).Methods("POST")
 
 	port := 8080
 	fmt.Printf("🚀 Server started on port %d\n", port)
