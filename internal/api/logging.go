@@ -7,15 +7,64 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/NathanSanchezDev/go-insight/internal/db"
 	"github.com/NathanSanchezDev/go-insight/internal/models"
 )
 
-func GetLogs() ([]models.Log, error) {
-	query := `SELECT id, service_name, log_level, message, timestamp, trace_id, span_id, metadata FROM logs`
-	rows, err := db.DB.QueryContext(context.Background(), query)
+func GetLogs(serviceName, logLevel, messageContains string, startTime, endTime time.Time, limit, offset int) ([]models.Log, error) {
+	query := `SELECT id, service_name, log_level, message, timestamp, trace_id, span_id, metadata 
+              FROM logs WHERE 1=1`
+
+	var params []interface{}
+	paramCount := 1
+
+	if serviceName != "" {
+		query += fmt.Sprintf(" AND service_name = $%d", paramCount)
+		params = append(params, serviceName)
+		paramCount++
+	}
+
+	if logLevel != "" {
+		query += fmt.Sprintf(" AND log_level = $%d", paramCount)
+		params = append(params, logLevel)
+		paramCount++
+	}
+
+	if messageContains != "" {
+		query += fmt.Sprintf(" AND message ILIKE $%d", paramCount)
+		params = append(params, "%"+messageContains+"%")
+		paramCount++
+	}
+
+	if !startTime.IsZero() {
+		query += fmt.Sprintf(" AND timestamp >= $%d", paramCount)
+		params = append(params, startTime)
+		paramCount++
+	}
+
+	if !endTime.IsZero() {
+		query += fmt.Sprintf(" AND timestamp <= $%d", paramCount)
+		params = append(params, endTime)
+		paramCount++
+	}
+
+	query += " ORDER BY timestamp DESC"
+
+	if limit > 0 {
+		query += fmt.Sprintf(" LIMIT $%d", paramCount)
+		params = append(params, limit)
+		paramCount++
+
+		if offset > 0 {
+			query += fmt.Sprintf(" OFFSET $%d", paramCount)
+			params = append(params, offset)
+		}
+	}
+
+	rows, err := db.DB.QueryContext(context.Background(), query, params...)
 	if err != nil {
 		log.Println("❌ Error fetching logs:", err)
 		return nil, err
@@ -134,7 +183,41 @@ func PostLog(logEntry *models.Log) error {
 }
 
 func GetLogsHandler(w http.ResponseWriter, r *http.Request) {
-	logs, err := GetLogs()
+	serviceName := r.URL.Query().Get("service")
+	logLevel := r.URL.Query().Get("level")
+	messageContains := r.URL.Query().Get("message")
+
+	var startTime, endTime time.Time
+
+	if startTimeStr := r.URL.Query().Get("start_time"); startTimeStr != "" {
+		parsedTime, err := time.Parse(time.RFC3339, startTimeStr)
+		if err == nil {
+			startTime = parsedTime
+		}
+	}
+
+	if endTimeStr := r.URL.Query().Get("end_time"); endTimeStr != "" {
+		parsedTime, err := time.Parse(time.RFC3339, endTimeStr)
+		if err == nil {
+			endTime = parsedTime
+		}
+	}
+
+	limit := 100
+	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
+		if parsedLimit, err := strconv.Atoi(limitStr); err == nil && parsedLimit > 0 {
+			limit = parsedLimit
+		}
+	}
+
+	offset := 0
+	if offsetStr := r.URL.Query().Get("offset"); offsetStr != "" {
+		if parsedOffset, err := strconv.Atoi(offsetStr); err == nil && parsedOffset >= 0 {
+			offset = parsedOffset
+		}
+	}
+
+	logs, err := GetLogs(serviceName, logLevel, messageContains, startTime, endTime, limit, offset)
 	if err != nil {
 		http.Error(w, "Failed to fetch logs", http.StatusInternalServerError)
 		return
