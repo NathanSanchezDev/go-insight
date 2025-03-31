@@ -45,3 +45,26 @@ func FetchTraces(service string) ([]models.Trace, error) {
 	}
 	return traces, nil
 }
+
+func FetchSpanByID(spanID string) (models.Span, error) {
+	query := `SELECT id, trace_id, parent_id, service, operation, start_time, end_time, duration_ms FROM spans WHERE id = $1`
+
+	var span models.Span
+	err := DB.QueryRow(query, spanID).Scan(
+		&span.ID,
+		&span.TraceID,
+		&span.ParentID,
+		&span.Service,
+		&span.Operation,
+		&span.StartTime,
+		&span.EndTime,
+		&span.Duration,
+	)
+
+	if err != nil {
+		log.Println("Failed to fetch span:", err)
+		return models.Span{}, err
+	}
+
+	return span, nil
+}
