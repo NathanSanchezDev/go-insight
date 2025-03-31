@@ -1,20 +1,319 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
+	"log"
 	"net/http"
+	"strconv"
+	"time"
 
 	"github.com/NathanSanchezDev/go-insight/internal/db"
+	"github.com/NathanSanchezDev/go-insight/internal/models"
+	"github.com/NathanSanchezDev/go-insight/internal/observability"
+	"github.com/gorilla/mux"
 )
 
-func GetTraces(w http.ResponseWriter, r *http.Request) {
-	service := r.URL.Query().Get("service")
+func GetTracesHandler(w http.ResponseWriter, r *http.Request) {
+	serviceName := r.URL.Query().Get("service")
 
-	traces, err := db.FetchTraces(service)
+	var startTime, endTime time.Time
+	if startTimeStr := r.URL.Query().Get("start_time"); startTimeStr != "" {
+		parsedTime, err := time.Parse(time.RFC3339, startTimeStr)
+		if err == nil {
+			startTime = parsedTime
+		}
+	}
+
+	if endTimeStr := r.URL.Query().Get("end_time"); endTimeStr != "" {
+		parsedTime, err := time.Parse(time.RFC3339, endTimeStr)
+		if err == nil {
+			endTime = parsedTime
+		}
+	}
+
+	limit := 100
+	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
+		if parsedLimit, err := strconv.Atoi(limitStr); err == nil && parsedLimit > 0 {
+			limit = parsedLimit
+		}
+	}
+
+	offset := 0
+	if offsetStr := r.URL.Query().Get("offset"); offsetStr != "" {
+		if parsedOffset, err := strconv.Atoi(offsetStr); err == nil && parsedOffset >= 0 {
+			offset = parsedOffset
+		}
+	}
+
+	traces, err := GetTraces(serviceName, startTime, endTime, limit, offset)
 	if err != nil {
 		http.Error(w, "Error fetching traces", http.StatusInternalServerError)
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(traces)
+}
+
+func GetTraces(serviceName string, startTime, endTime time.Time, limit, offset int) ([]models.Trace, error) {
+	query := `SELECT id, service_name, start_time, end_time, duration_ms 
+              FROM traces WHERE 1=1`
+
+	var params []interface{}
+	paramCount := 1
+
+	if serviceName != "" {
+		query += fmt.Sprintf(" AND service_name = $%d", paramCount)
+		params = append(params, serviceName)
+		paramCount++
+	}
+
+	if !startTime.IsZero() {
+		query += fmt.Sprintf(" AND start_time >= $%d", paramCount)
+		params = append(params, startTime)
+		paramCount++
+	}
+
+	if !endTime.IsZero() {
+		query += fmt.Sprintf(" AND start_time <= $%d", paramCount)
+		params = append(params, endTime)
+		paramCount++
+	}
+
+	query += " ORDER BY start_time DESC"
+
+	if limit > 0 {
+		query += fmt.Sprintf(" LIMIT $%d", paramCount)
+		params = append(params, limit)
+		paramCount++
+
+		if offset > 0 {
+			query += fmt.Sprintf(" OFFSET $%d", paramCount)
+			params = append(params, offset)
+		}
+	}
+
+	rows, err := db.DB.QueryContext(context.Background(), query, params...)
+	if err != nil {
+		log.Println("❌ Error fetching traces:", err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	var traces []models.Trace
+
+	for rows.Next() {
+		var trace models.Trace
+		err := rows.Scan(
+			&trace.ID,
+			&trace.ServiceName,
+			&trace.StartTime,
+			&trace.EndTime,
+			&trace.Duration,
+		)
+		if err != nil {
+			log.Println("❌ Error scanning trace row:", err)
+			continue
+		}
+
+		traces = append(traces, trace)
+	}
+
+	return traces, nil
+}
+
+func GetSpansHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	traceID := vars["traceId"]
+
+	if traceID == "" {
+		http.Error(w, "Trace ID is required", http.StatusBadRequest)
+		return
+	}
+
+	spans, err := db.FetchSpans(traceID)
+	if err != nil {
+		log.Printf("❌ Error fetching spans: %v", err)
+		http.Error(w, "Error fetching spans", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(spans)
+}
+
+func CreateTraceHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var trace models.Trace
+	err := json.NewDecoder(r.Body).Decode(&trace)
+	if err != nil {
+		log.Printf("❌ Error decoding trace JSON: %v", err)
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if err := validateTrace(&trace); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if trace.ID == "" {
+		trace.ID = observability.GenerateUUID()
+	}
+
+	if trace.StartTime.IsZero() {
+		trace.StartTime = time.Now()
+	}
+
+	err = db.StoreTrace(trace)
+	if err != nil {
+		log.Printf("❌ Error storing trace: %v", err)
+		http.Error(w, "Failed to store trace", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(trace)
+}
+
+func CreateSpanHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var span models.Span
+	err := json.NewDecoder(r.Body).Decode(&span)
+	if err != nil {
+		log.Printf("❌ Error decoding span JSON: %v", err)
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if err := validateSpan(&span); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if span.ID == "" {
+		span.ID = observability.GenerateUUID()
+	}
+
+	if span.StartTime.IsZero() {
+		span.StartTime = time.Now()
+	}
+
+	err = db.StoreSpan(span)
+	if err != nil {
+		log.Printf("❌ Error storing span: %v", err)
+		http.Error(w, "Failed to store span", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(span)
+}
+
+func EndTraceHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	traceID := vars["traceId"]
+
+	if traceID == "" {
+		http.Error(w, "Trace ID is required", http.StatusBadRequest)
+		return
+	}
+
+	traces, err := GetTraces("", time.Time{}, time.Time{}, 1, 0)
+	if err != nil || len(traces) == 0 {
+		http.Error(w, "Trace not found", http.StatusNotFound)
+		return
+	}
+
+	trace := traces[0]
+	trace.EndTime = time.Now()
+	trace.Duration = trace.EndTime.Sub(trace.StartTime).Seconds() * 1000
+
+	err = db.UpdateTrace(&trace)
+	if err != nil {
+		log.Printf("❌ Error updating trace: %v", err)
+		http.Error(w, "Failed to update trace", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(trace)
+}
+
+func EndSpanHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	spanID := vars["spanId"]
+
+	if spanID == "" {
+		http.Error(w, "Span ID is required", http.StatusBadRequest)
+		return
+	}
+
+	span, err := db.FetchSpanByID(spanID)
+	if err != nil {
+		http.Error(w, "Span not found", http.StatusNotFound)
+		return
+	}
+
+	span.EndTime = time.Now()
+	span.Duration = span.EndTime.Sub(span.StartTime).Seconds() * 1000
+
+	err = db.UpdateSpan(&span)
+	if err != nil {
+		log.Printf("❌ Error updating span: %v", err)
+		http.Error(w, "Failed to update span", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(span)
+}
+
+func validateTrace(trace *models.Trace) error {
+	if trace.ServiceName == "" {
+		return errors.New("service name is required")
+	}
+
+	if !trace.EndTime.IsZero() && !trace.StartTime.IsZero() {
+		if trace.EndTime.Before(trace.StartTime) {
+			return errors.New("end time cannot be before start time")
+		}
+	}
+
+	return nil
+}
+
+func validateSpan(span *models.Span) error {
+	if span.Service == "" {
+		return errors.New("service name is required")
+	}
+
+	if span.TraceID == "" {
+		return errors.New("trace ID is required")
+	}
+
+	if span.Operation == "" {
+		return errors.New("operation is required")
+	}
+
+	if !span.EndTime.IsZero() && !span.StartTime.IsZero() {
+		if span.EndTime.Before(span.StartTime) {
+			return errors.New("end time cannot be before start time")
+		}
+	}
+
+	return nil
 }
