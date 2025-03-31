@@ -10,7 +10,7 @@ import (
 
 func StartTrace(serviceName string) models.Trace {
 	trace := models.Trace{
-		ID:          generateUUID(),
+		ID:          GenerateUUID(),
 		ServiceName: serviceName,
 		StartTime:   time.Now(),
 	}

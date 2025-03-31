@@ -12,7 +12,7 @@ import (
 
 func StartSpan(traceID, parentID, service, operation string) models.Span {
 	span := models.Span{
-		ID:        generateUUID(),
+		ID:        GenerateUUID(),
 		TraceID:   traceID,
 		ParentID:  parentID,
 		Service:   service,
@@ -38,6 +38,6 @@ func EndSpan(span *models.Span) {
 	}
 }
 
-func generateUUID() string {
+func GenerateUUID() string {
 	return uuid.New().String()
 }
