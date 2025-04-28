@@ -1,7 +1,7 @@
 # Go-Insight
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/b6f57e12-9170-490a-9d2c-8b0359b85e47" alt="Go-Insight Logo" width="200" height="200">
+  <img src="https://github.com/user-attachments/assets/149f2e32-daad-4222-a705-df80332b1738" alt="Go-Insight Logo" width="400" height="400">
 </p>
 
 <p align="center">
