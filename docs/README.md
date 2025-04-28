@@ -151,7 +151,7 @@ For detailed schema information, see the migration files in `internal/db/migrati
 
 ## Roadmap
 
-Go-Insight is under active development. See our detailed [roadmap](docs/roadmap.md) for upcoming features, including:
+Go-Insight is under active development. See our detailed [roadmap](roadmap.md) for upcoming features, including:
 
 ### Phase 2: Enhanced Core Features (1-2 months)
 - API improvements for high-volume data
