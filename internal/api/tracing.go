@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -125,6 +126,27 @@ func GetTraces(serviceName string, startTime, endTime time.Time, limit, offset i
 	return traces, nil
 }
 
+func GetTraceByID(traceID string) (*models.Trace, error) {
+	query := `SELECT id, service_name, start_time, end_time, duration_ms 
+	          FROM traces WHERE id = $1`
+
+	var trace models.Trace
+	err := db.DB.QueryRowContext(context.Background(), query, traceID).Scan(
+		&trace.ID,
+		&trace.ServiceName,
+		&trace.StartTime,
+		&trace.EndTime,
+		&trace.Duration,
+	)
+
+	if err != nil {
+		log.Printf("❌ Error fetching trace by ID %s: %v", traceID, err)
+		return nil, err
+	}
+
+	return &trace, nil
+}
+
 func GetSpansHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	traceID := vars["traceId"]
@@ -232,17 +254,20 @@ func EndTraceHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	traces, err := GetTraces("", time.Time{}, time.Time{}, 1, 0)
-	if err != nil || len(traces) == 0 {
+	trace, err := GetTraceByID(traceID)
+	if err != nil {
 		http.Error(w, "Trace not found", http.StatusNotFound)
 		return
 	}
 
-	trace := traces[0]
-	trace.EndTime = time.Now()
-	trace.Duration = trace.EndTime.Sub(trace.StartTime).Seconds() * 1000
+	now := time.Now()
+	trace.EndTime = sql.NullTime{Time: now, Valid: true}
+	trace.Duration = sql.NullFloat64{
+		Float64: now.Sub(trace.StartTime).Seconds() * 1000,
+		Valid:   true,
+	}
 
-	err = db.UpdateTrace(&trace)
+	err = db.UpdateTrace(trace)
 	if err != nil {
 		log.Printf("❌ Error updating trace: %v", err)
 		http.Error(w, "Failed to update trace", http.StatusInternalServerError)
@@ -287,8 +312,8 @@ func validateTrace(trace *models.Trace) error {
 		return errors.New("service name is required")
 	}
 
-	if !trace.EndTime.IsZero() && !trace.StartTime.IsZero() {
-		if trace.EndTime.Before(trace.StartTime) {
+	if trace.EndTime.Valid && !trace.StartTime.IsZero() {
+		if trace.EndTime.Time.Before(trace.StartTime) {
 			return errors.New("end time cannot be before start time")
 		}
 	}

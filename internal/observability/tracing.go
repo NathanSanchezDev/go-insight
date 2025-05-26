@@ -1,6 +1,7 @@
 package observability
 
 import (
+	"database/sql"
 	"log"
 	"time"
 
@@ -24,8 +25,17 @@ func StartTrace(serviceName string) models.Trace {
 }
 
 func EndTrace(trace *models.Trace) {
-	trace.EndTime = time.Now()
-	trace.Duration = trace.EndTime.Sub(trace.StartTime).Seconds() * 1000
+	now := time.Now()
+
+	trace.EndTime = sql.NullTime{
+		Time:  now,
+		Valid: true,
+	}
+
+	trace.Duration = sql.NullFloat64{
+		Float64: now.Sub(trace.StartTime).Seconds() * 1000,
+		Valid:   true,
+	}
 
 	err := db.UpdateTrace(trace)
 	if err != nil {
