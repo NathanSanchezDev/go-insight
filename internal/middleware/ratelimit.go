@@ -81,11 +81,8 @@ func isRequestAllowed(clientIP string) (bool, int) {
 
 func getClientIP(r *http.Request) string {
 	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
-		if strings.Contains(xff, ",") {
-			parts := strings.Split(xff, ",")
-			return strings.TrimSpace(parts[0])
-		}
-		return strings.TrimSpace(xff)
+		parts := strings.SplitN(xff, ",", 2)
+		return strings.TrimSpace(parts[0])
 	}
 	if xri := r.Header.Get("X-Real-IP"); xri != "" {
 		return xri
