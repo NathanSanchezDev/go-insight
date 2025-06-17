@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"html"
 	"log"
 	"net/http"
 	"strconv"
@@ -132,6 +133,10 @@ func validateLogEntry(logEntry *models.Log) error {
 	return nil
 }
 
+func sanitizeLogEntry(logEntry *models.Log) {
+	logEntry.Message = html.EscapeString(logEntry.Message)
+}
+
 func PostLog(logEntry *models.Log) error {
 	if logEntry.Timestamp.IsZero() {
 		logEntry.Timestamp = time.Now()
@@ -241,7 +246,9 @@ func PostLogHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var logEntry models.Log
-	err := json.NewDecoder(r.Body).Decode(&logEntry)
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+	err := decoder.Decode(&logEntry)
 	if err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
@@ -251,6 +258,8 @@ func PostLogHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+
+	sanitizeLogEntry(&logEntry)
 
 	err = PostLog(&logEntry)
 	if err != nil {

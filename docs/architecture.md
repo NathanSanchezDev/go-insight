@@ -582,10 +582,10 @@ require (
 - Easy to rotate and manage
 - Low overhead for high-throughput APIs
 
-**Future Enhancements**:
+**Current Enhancements**:
 - JWT tokens for stateless authentication
 - Role-based access control (RBAC)
-- OAuth2 integration for enterprise environments
+**Future**: OAuth2 integration for enterprise environments
 
 ## Testing Strategy
 
