@@ -53,6 +53,7 @@ git clone https://github.com/NathanSanchezDev/go-insight.git
 cd go-insight
 
 # Configure environment
+# Copy the sample file from the repository root
 cp .env.example .env
 # Edit .env with your database credentials and API key
 ```
