@@ -157,6 +157,13 @@ func PostLog(logEntry *models.Log) error {
 		logEntry.Metadata = &emptyJSON
 	}
 
+	var metadataBytes []byte
+	if logEntry.Metadata != nil {
+		metadataBytes = *logEntry.Metadata
+	} else {
+		metadataBytes = []byte("{}")
+	}
+
 	query := `INSERT INTO logs 
 		(service_name, log_level, message, timestamp, trace_id, span_id, metadata) 
 		VALUES ($1, $2, $3, $4, $5, $6, $7) 
@@ -171,7 +178,7 @@ func PostLog(logEntry *models.Log) error {
 		logEntry.Timestamp,
 		logEntry.TraceID,
 		logEntry.SpanID,
-		logEntry.Metadata,
+		metadataBytes,
 	).Scan(&logEntry.ID)
 
 	if err != nil {
