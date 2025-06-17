@@ -275,7 +275,7 @@ Planned security improvements include:
 For security-related questions or to report security vulnerabilities:
 
 - Create an issue on GitHub for general security questions
-- For security vulnerabilities, please email nathansanchezdev@outlook.com*
+- For security vulnerabilities, please email nathansanchezdev@outlook.com
 
 ---
 
