@@ -201,6 +201,36 @@ curl -X POST http://localhost:8080/logs \
 - `401 Unauthorized`: Authentication required
 - `429 Too Many Requests`: Rate limit exceeded
 
+### POST /logs/bulk
+
+Insert multiple log entries in a single request.
+
+**Authentication**: Required
+
+**Request Body**: Array of log objects matching the POST `/logs` schema.
+
+**Request**:
+```bash
+curl -X POST http://localhost:8080/logs/bulk \
+  -H "X-API-Key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '[{"service_name":"svc","message":"m1"},{"service_name":"svc","message":"m2"}]'
+```
+
+**Response**:
+```json
+[
+  { "id": 1, "service_name": "svc", "log_level": "", "message": "m1" },
+  { "id": 2, "service_name": "svc", "log_level": "", "message": "m2" }
+]
+```
+
+**Status Codes**:
+- `201 Created`: Logs inserted successfully
+- `400 Bad Request`: Validation error
+- `401 Unauthorized`: Authentication required
+- `429 Too Many Requests`: Rate limit exceeded
+
 ---
 
 ## Metrics API

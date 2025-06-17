@@ -271,3 +271,99 @@ func PostLogHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(logEntry)
 }
+
+// PostLogsBulk inserts multiple log entries in a single transaction.
+func PostLogsBulk(logs []models.Log) error {
+	tx, err := db.DB.BeginTx(context.Background(), nil)
+	if err != nil {
+		return err
+	}
+
+	stmt, err := tx.PrepareContext(context.Background(), `INSERT INTO logs
+                (service_name, log_level, message, timestamp, trace_id, span_id, metadata)
+                VALUES ($1, $2, $3, $4, $5, $6, $7)
+                RETURNING id`)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	defer stmt.Close()
+
+	for i := range logs {
+		entry := &logs[i]
+
+		if entry.Timestamp.IsZero() {
+			entry.Timestamp = time.Now()
+		}
+
+		if entry.TraceID.String == "" {
+			entry.TraceID.Valid = false
+		} else {
+			entry.TraceID.Valid = true
+		}
+
+		if entry.SpanID.String == "" {
+			entry.SpanID.Valid = false
+		} else {
+			entry.SpanID.Valid = true
+		}
+
+		if entry.Metadata == nil || len(*entry.Metadata) == 0 {
+			empty := json.RawMessage("{}")
+			entry.Metadata = &empty
+		}
+
+		metadataBytes := *entry.Metadata
+
+		if err := stmt.QueryRowContext(context.Background(),
+			entry.ServiceName,
+			entry.LogLevel,
+			entry.Message,
+			entry.Timestamp,
+			entry.TraceID,
+			entry.SpanID,
+			metadataBytes,
+		).Scan(&entry.ID); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	return tx.Commit()
+}
+
+// postLogsBulkFunc allows tests to mock bulk insertion.
+var postLogsBulkFunc = PostLogsBulk
+
+// PostLogsBulkHandler handles POST /logs/bulk for inserting multiple logs.
+func PostLogsBulkHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var entries []models.Log
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&entries); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	for i := range entries {
+		if err := validateLogEntry(&entries[i]); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		sanitizeLogEntry(&entries[i])
+	}
+
+	if err := postLogsBulkFunc(entries); err != nil {
+		http.Error(w, "Failed to save logs", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(entries)
+}

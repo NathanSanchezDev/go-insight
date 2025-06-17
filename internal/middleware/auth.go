@@ -144,10 +144,11 @@ func parseJWT(token, secret string) (*jwtClaims, error) {
 }
 
 var EndpointRoles = map[string]string{
-	"/metrics": "user",
-	"/logs":    "user",
-	"/traces":  "user",
-	"/spans":   "user",
+	"/logs":      "user",
+	"/logs/bulk": "user",
+	"/metrics":   "user",
+	"/spans":     "user",
+	"/traces":    "user",
 }
 
 func hasRole(userRole, required string) bool {
