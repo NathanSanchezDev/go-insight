@@ -9,7 +9,7 @@ Go-Insight's security model follows the principle of **defense in depth**:
 1. **Authentication** - API key validation for endpoint access
 2. **Rate Limiting** - Per-IP request throttling to prevent abuse
 3. **Endpoint Protection** - Public monitoring vs. protected data endpoints
-4. **Input Validation** - Request sanitization and size limits *(planned)*
+4. **Input Validation** - JSON schema checks and request size limits
 
 ## Authentication
 
@@ -264,8 +264,6 @@ Security events are logged for monitoring:
 
 Planned security improvements include:
 
-- **Input Validation**: Request size limits and JSON schema validation
-- **Advanced Authentication**: JWT tokens and role-based access control
 - **Security Headers**: CSRF protection and security-focused HTTP headers
 - **Request/Response Encryption**: End-to-end encryption for sensitive data
 - **Audit Logging**: Comprehensive security event tracking

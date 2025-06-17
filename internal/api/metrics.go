@@ -220,7 +220,9 @@ func PostMetricHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var metric models.EndpointMetric
-	err := json.NewDecoder(r.Body).Decode(&metric)
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+	err := decoder.Decode(&metric)
 	if err != nil {
 		log.Printf("❌ Error decoding metric JSON: %v", err)
 		http.Error(w, "Invalid request body", http.StatusBadRequest)

@@ -17,6 +17,7 @@ func main() {
 	db.InitDB()
 	router := api.SetupRoutes()
 
+	router.Use(middleware.LimitBodySize(1 << 20))
 	router.Use(middleware.RateLimitMiddleware)
 	router.Use(conditionalAuthMiddleware)
 	router.Use(loggingMiddleware)

@@ -174,7 +174,9 @@ func CreateTraceHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var trace models.Trace
-	err := json.NewDecoder(r.Body).Decode(&trace)
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+	err := decoder.Decode(&trace)
 	if err != nil {
 		log.Printf("❌ Error decoding trace JSON: %v", err)
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
@@ -213,7 +215,9 @@ func CreateSpanHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var span models.Span
-	err := json.NewDecoder(r.Body).Decode(&span)
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+	err := decoder.Decode(&span)
 	if err != nil {
 		log.Printf("❌ Error decoding span JSON: %v", err)
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
