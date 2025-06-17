@@ -14,7 +14,7 @@ func TestExtractAPIKey(t *testing.T) {
 	}{
 		{header: http.Header{"Authorization": []string{"Bearer token123"}}, want: "token123"},
 		{header: http.Header{"Authorization": []string{"ApiKey abcdef"}}, want: "abcdef"},
-		{header: http.Header{"X-API-Key": []string{"headerkey"}}, want: "headerkey"},
+               {header: http.Header{"X-Api-Key": []string{"headerkey"}}, want: "headerkey"},
 		{query: url.Values{"api_key": []string{"querykey"}}, want: "querykey"},
 		{header: http.Header{}, want: ""},
 	}
