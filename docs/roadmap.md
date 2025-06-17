@@ -43,7 +43,7 @@ Go-Insight is an observability platform designed to collect, store, and visualiz
 - ✅ **Advanced authentication options** (JWT, role-based access)
 
 ### Bulk Operations & Performance
-- 🔄 **Bulk insertion endpoints** for high-volume data ingestion (POST /logs/bulk)
+- ✅ **Bulk insertion endpoints** for high-volume data ingestion (POST /logs/bulk)
 - 🔄 **Aggregation endpoints** for metrics analysis (averages, percentiles)
 - 🔄 **Background job processing** for data retention and cleanup
 - 🔄 **Connection pooling optimization** for database efficiency
