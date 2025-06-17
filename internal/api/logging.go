@@ -332,6 +332,9 @@ func PostLogsBulk(logs []models.Log) error {
 	return tx.Commit()
 }
 
+// postLogsBulkFunc allows tests to mock bulk insertion.
+var postLogsBulkFunc = PostLogsBulk
+
 // PostLogsBulkHandler handles POST /logs/bulk for inserting multiple logs.
 func PostLogsBulkHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
@@ -355,7 +358,7 @@ func PostLogsBulkHandler(w http.ResponseWriter, r *http.Request) {
 		sanitizeLogEntry(&entries[i])
 	}
 
-	if err := PostLogsBulk(entries); err != nil {
+	if err := postLogsBulkFunc(entries); err != nil {
 		http.Error(w, "Failed to save logs", http.StatusInternalServerError)
 		return
 	}
