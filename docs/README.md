@@ -53,6 +53,7 @@ git clone https://github.com/NathanSanchezDev/go-insight.git
 cd go-insight
 
 # Configure environment
+# Copy the sample file from the repository root
 cp .env.example .env
 # Edit .env with your database credentials and API key
 ```
@@ -136,8 +137,8 @@ curl -H "X-API-Key: your-api-key" \
 **🎯 Phase 1: Foundation** ✅ *Complete*  
 Core APIs, security, and performance optimization
 
-**🚀 Phase 2: Production Features** *In Progress*  
-Input validation, internal monitoring, enhanced logging
+**🚀 Phase 2: Production Features** *In Progress*
+Input validation (completed), internal monitoring, enhanced logging
 
 **📊 Phase 3: User Interface** *Planned*  
 Web dashboard, visualizations, alerting system

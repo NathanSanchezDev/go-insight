@@ -17,6 +17,7 @@ func SetupRoutes() *mux.Router {
 	// Logs endpoints
 	router.HandleFunc("/logs", GetLogsHandler).Methods("GET")
 	router.HandleFunc("/logs", PostLogHandler).Methods("POST")
+	router.HandleFunc("/logs/bulk", PostLogsBulkHandler).Methods("POST")
 
 	// Traces endpoints
 	router.HandleFunc("/traces", GetTracesHandler).Methods("GET")
