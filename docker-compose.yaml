@@ -1,0 +1,37 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: go_insight_db
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASS}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - "${DB_PORT}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./internal/db/migrations:/internal/db/migrations
+
+  go-insight:
+    build: .
+    container_name: go_insight_app
+    ports:
+      - "${PORT}:${PORT}"
+    depends_on:
+      - postgres
+    environment:
+      DB_USER: ${DB_USER}
+      DB_PASS: ${DB_PASS}
+      DB_NAME: ${DB_NAME}
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      PORT: ${PORT}
+      API_KEY: ${API_KEY}
+      RATE_LIMIT_REQUESTS: ${RATE_LIMIT_REQUESTS}
+      RATE_LIMIT_WINDOW: ${RATE_LIMIT_WINDOW}
+
+volumes:
+  pgdata:
