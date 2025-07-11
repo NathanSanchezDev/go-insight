@@ -1,0 +1,12 @@
+apiVersion: 1
+datasources:
+  - name: GoInsight
+    type: postgres
+    access: proxy
+    url: postgres:5432
+    database: ${DB_NAME}
+    user: ${DB_USER}
+    secureJsonData:
+      password: ${DB_PASS}
+    jsonData:
+      sslmode: disable

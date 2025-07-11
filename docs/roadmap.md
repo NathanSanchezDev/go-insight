@@ -62,7 +62,8 @@ Go-Insight is an observability platform designed to collect, store, and visualiz
 ## Phase 3: User Interface & Visualization (3-4 months)
 
 ### Dashboard Development
-- **Web UI framework** selection and setup
+- **Grafana dashboards** for log visualization (initial implementation)
+- **Web UI framework** selection and setup for future custom features
 - **Log viewer** with real-time search and filtering
 - **Metrics visualization** with time-series charts and graphs
 - **Trace visualization** with span relationships and timing
