@@ -33,5 +33,21 @@ services:
       RATE_LIMIT_REQUESTS: ${RATE_LIMIT_REQUESTS}
       RATE_LIMIT_WINDOW: ${RATE_LIMIT_WINDOW}
 
+  grafana:
+    image: grafana/grafana:10.4.0
+    container_name: go_insight_grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - postgres
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - ./provisioning/grafana/datasources:/etc/grafana/provisioning/datasources
+      - ./provisioning/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - grafana_data:/var/lib/grafana
+
 volumes:
   pgdata:
+  grafana_data:

@@ -587,6 +587,20 @@ require (
 - Role-based access control (RBAC)
 **Future**: OAuth2 integration for enterprise environments
 
+### 5. Log Visualization UI
+**Decision**: Integrate Grafana for log dashboards instead of building a custom UI in the short term.
+
+**Why Grafana**:
+- Mature visualization platform with built-in PostgreSQL support
+- Ready-made dashboarding capabilities reduce development time
+- Easily extensible for metrics and traces
+
+**Alternatives Considered**:
+- **Custom React UI**: Full control over design but requires significant effort
+- **Kibana**: Another log UI option, but heavier stack and less integrated with existing plans
+
+Grafana can be deployed alongside Go-Insight via Docker Compose and connects directly to the PostgreSQL database. A custom UI remains possible in the future if specialized features are needed.
+
 ## Testing Strategy
 
 ### Unit Testing

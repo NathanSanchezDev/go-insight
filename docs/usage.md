@@ -540,6 +540,10 @@ try {
 }
 ```
 
+## Visualizing Logs
+
+After starting the Docker stack, Grafana runs on `http://localhost:3000` with default credentials `admin/admin`. The provided dashboard shows recent log entries from the `logs` table. You can customize queries or create new dashboards to fit your needs.
+
 ## Performance Tips
 
 1. **Batch Operations**: Group multiple log entries when possible

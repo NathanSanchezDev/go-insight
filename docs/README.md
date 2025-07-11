@@ -67,6 +67,7 @@ cp .env.example .env
 ```bash
 # Start the entire stack
 docker-compose up -d --build
+# This also starts a Grafana instance on port 3000
 
 # Verify health
 curl http://localhost:8001/health
@@ -111,6 +112,10 @@ docker-compose logs go-insight
 
 # View database logs
 docker-compose logs postgres
+
+# Access Grafana dashboard
+# Default credentials: admin / admin
+http://localhost:3000
 
 # Stop all services
 docker-compose down
