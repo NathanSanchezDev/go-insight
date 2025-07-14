@@ -2,36 +2,70 @@ version: "3.8"
 
 services:
   postgres:
-    image: postgres:15
+    image: postgres:15-alpine
     container_name: go_insight_db
-    restart: always
+    restart: unless-stopped
     environment:
-      POSTGRES_USER: ${DB_USER}
+      POSTGRES_USER: ${DB_USER:-postgres}
       POSTGRES_PASSWORD: ${DB_PASS}
-      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_DB: ${DB_NAME:-go_insight}
     ports:
-      - "${DB_PORT}:5432"
+      - "${DB_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./internal/db/migrations:/internal/db/migrations
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-go_insight}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
   go-insight:
-    build: .
+    build: 
+      context: .
+      dockerfile: Dockerfile
     container_name: go_insight_app
+    restart: unless-stopped
     ports:
-      - "${PORT}:${PORT}"
+      - "${PORT:-8080}:${PORT:-8080}"
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     environment:
-      DB_USER: ${DB_USER}
-      DB_PASS: ${DB_PASS}
-      DB_NAME: ${DB_NAME}
-      DB_HOST: ${DB_HOST}
-      DB_PORT: ${DB_PORT}
-      PORT: ${PORT}
-      API_KEY: ${API_KEY}
-      RATE_LIMIT_REQUESTS: ${RATE_LIMIT_REQUESTS}
-      RATE_LIMIT_WINDOW: ${RATE_LIMIT_WINDOW}
+      # Database Configuration
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASS: ${DB_PASS:-password}
+      DB_NAME: ${DB_NAME:-go_insight}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      
+      # Application Configuration
+      PORT: ${PORT:-8080}
+      API_KEY: ${API_KEY:-your-secure-api-key-here}
+      
+      # Rate Limiting
+      RATE_LIMIT_REQUESTS: ${RATE_LIMIT_REQUESTS:-60}
+      RATE_LIMIT_WINDOW: ${RATE_LIMIT_WINDOW:-1}
+      
+      # Connection Pool Configuration
+      DB_MAX_OPEN_CONNS: 25
+      DB_MAX_IDLE_CONNS: 10
+      DB_CONN_MAX_LIFETIME: 300
+      
+      # Optional JWT Configuration
+      JWT_SECRET: ${JWT_SECRET:-}
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:${PORT:-8080}/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
 volumes:
   pgdata:
+    driver: local
+
+networks:
+  default:
+    name: go_insight_network

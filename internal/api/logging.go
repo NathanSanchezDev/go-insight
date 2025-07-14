@@ -19,7 +19,7 @@ func GetLogs(serviceName, logLevel, messageContains string, startTime, endTime t
 	query := `SELECT id, service_name, log_level, message, timestamp, trace_id, span_id, metadata 
               FROM logs WHERE 1=1`
 
-	var params []interface{}
+	var params []any
 	paramCount := 1
 
 	if serviceName != "" {
