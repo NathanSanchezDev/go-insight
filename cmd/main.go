@@ -15,21 +15,20 @@ import (
 )
 
 func main() {
-	// Load config
 	cfg, err := config.Load()
 	if err != nil {
 		log.Fatal("Failed to load config:", err)
 	}
 
-	// Pass config to subsystems
 	db.InitDB(cfg)
 	router := api.SetupRoutes()
 
+	// Apply middleware to main router, but auth will check if path needs it
 	router.Use(middleware.RateLimitMiddleware(cfg))
 	router.Use(conditionalAuthMiddleware)
 	router.Use(loggingMiddleware(cfg))
 
-	port := getEnvPort(8080) // Keep this as env since it's deployment-specific
+	port := getEnvPort(8080)
 
 	fmt.Printf("🚀 Server started on port %d\n", port)
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), router))
