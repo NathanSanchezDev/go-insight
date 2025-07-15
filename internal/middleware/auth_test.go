@@ -33,10 +33,19 @@ func TestRequiresAuth(t *testing.T) {
 	if RequiresAuth("/health") {
 		t.Errorf("/health should not require auth")
 	}
-	if !RequiresAuth("/logs") {
-		t.Errorf("/logs should require auth")
+	if RequiresAuth("/api/health") {
+		t.Errorf("/api/health should not require auth")
 	}
-	if !RequiresAuth("/logs/bulk") {
-		t.Errorf("/logs/bulk should require auth")
+	if !RequiresAuth("/api/logs") {
+		t.Errorf("/api/logs should require auth")
+	}
+	if !RequiresAuth("/api/logs/bulk") {
+		t.Errorf("/api/logs/bulk should require auth")
+	}
+	if RequiresAuth("/") {
+		t.Errorf("/ should not require auth (static files)")
+	}
+	if RequiresAuth("/dashboard") {
+		t.Errorf("/dashboard should not require auth (static files)")
 	}
 }

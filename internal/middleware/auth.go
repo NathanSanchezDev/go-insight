@@ -86,11 +86,19 @@ func extractAPIKey(r *http.Request) string {
 }
 
 var PublicEndpoints = map[string]bool{
-	"/health": true,
+	"/api/health": true,
 }
 
 func RequiresAuth(path string) bool {
-	return !PublicEndpoints[path]
+	if PublicEndpoints[path] {
+		return false
+	}
+
+	if !strings.HasPrefix(path, "/api/") {
+		return false
+	}
+
+	return true
 }
 
 func extractJWT(r *http.Request) string {
@@ -144,11 +152,11 @@ func parseJWT(token, secret string) (*jwtClaims, error) {
 }
 
 var EndpointRoles = map[string]string{
-	"/logs":      "user",
-	"/logs/bulk": "user",
-	"/metrics":   "user",
-	"/spans":     "user",
-	"/traces":    "user",
+	"/api/logs":      "user",
+	"/api/logs/bulk": "user",
+	"/api/metrics":   "user",
+	"/api/spans":     "user",
+	"/api/traces":    "user",
 }
 
 func hasRole(userRole, required string) bool {
