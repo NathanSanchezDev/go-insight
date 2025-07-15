@@ -5,16 +5,16 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strconv"
 	"time"
 
+	"github.com/NathanSanchezDev/go-insight/internal/config"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/joho/godotenv"
 )
 
 var DB *sql.DB
 
-func InitDB() {
+func InitDB(cfg *config.Config) {
 	if _, err := os.Stat(".env"); err == nil {
 		if err := godotenv.Load(); err != nil {
 			log.Printf("⚠️  Warning loading .env file: %v", err)
@@ -25,23 +25,23 @@ func InitDB() {
 		log.Println("🐳 Running in container mode - using environment variables")
 	}
 
-	config := getDatabaseConfig()
+	dbConfig := getDatabaseConfig(cfg)
 
-	if err := validateConfig(config); err != nil {
+	if err := validateConfig(dbConfig); err != nil {
 		log.Fatal("❌ Invalid database configuration:", err)
 	}
 
-	dsn := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
-		config.User, config.Password, config.Host, config.Port, config.Name)
+	dsn := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=disable",
+		dbConfig.User, dbConfig.Password, dbConfig.Host, dbConfig.Port, dbConfig.Name)
 
-	log.Printf("🔗 Connecting to database at %s:%s/%s as %s",
-		config.Host, config.Port, config.Name, config.User)
+	log.Printf("🔗 Connecting to database at %s:%d/%s as %s",
+		dbConfig.Host, dbConfig.Port, dbConfig.Name, dbConfig.User)
 
 	if err := connectWithRetry(dsn, 10, 2*time.Second); err != nil {
 		log.Fatal("❌ Failed to connect to database after retries:", err)
 	}
 
-	configureConnectionPool()
+	configureConnectionPool(cfg)
 	runMigrations()
 	log.Println("✅ Database initialized successfully!")
 }
@@ -51,16 +51,16 @@ type DatabaseConfig struct {
 	Password string
 	Name     string
 	Host     string
-	Port     string
+	Port     int
 }
 
-func getDatabaseConfig() DatabaseConfig {
+func getDatabaseConfig(cfg *config.Config) DatabaseConfig {
 	return DatabaseConfig{
-		User:     getEnvWithDefault("DB_USER", "postgres"),
-		Password: getEnvWithDefault("DB_PASS", ""),
-		Name:     getEnvWithDefault("DB_NAME", "go_insight"),
-		Host:     getEnvWithDefault("DB_HOST", "localhost"),
-		Port:     getEnvWithDefault("DB_PORT", "5432"),
+		User:     cfg.Database.User,
+		Password: getEnvWithDefault("DB_PASS", ""), // Keep password in ENV
+		Name:     cfg.Database.Name,
+		Host:     getEnvWithDefault("DB_HOST", "localhost"), // Keep host in ENV
+		Port:     cfg.Database.Port,
 	}
 }
 
@@ -72,7 +72,7 @@ func validateConfig(config DatabaseConfig) error {
 		return fmt.Errorf("DB_HOST environment variable is required")
 	}
 	if config.Name == "" {
-		return fmt.Errorf("DB_NAME environment variable is required")
+		return fmt.Errorf("DB_NAME cannot be empty")
 	}
 	return nil
 }
@@ -101,32 +101,21 @@ func connectWithRetry(dsn string, maxRetries int, delay time.Duration) error {
 	return fmt.Errorf("failed to connect after %d attempts: %v", maxRetries, err)
 }
 
-func configureConnectionPool() {
-	maxOpenConns := getEnvIntWithDefault("DB_MAX_OPEN_CONNS", 25)
-	maxIdleConns := getEnvIntWithDefault("DB_MAX_IDLE_CONNS", 10)
-	connMaxLifetime := getEnvIntWithDefault("DB_CONN_MAX_LIFETIME", 300) // 5 minutes
+func configureConnectionPool(cfg *config.Config) {
+	maxIdleConns := cfg.Database.MaxConnections / 2 // Half of max as idle
+	connMaxLifetime := 5 * time.Minute
 
-	DB.SetMaxOpenConns(maxOpenConns)
+	DB.SetMaxOpenConns(cfg.Database.MaxConnections)
 	DB.SetMaxIdleConns(maxIdleConns)
-	DB.SetConnMaxLifetime(time.Duration(connMaxLifetime) * time.Second)
+	DB.SetConnMaxLifetime(connMaxLifetime)
 
-	log.Printf("🔧 Connection pool configured: max_open=%d, max_idle=%d, max_lifetime=%ds",
-		maxOpenConns, maxIdleConns, connMaxLifetime)
+	log.Printf("🔧 Connection pool configured: max_open=%d, max_idle=%d, max_lifetime=%v",
+		cfg.Database.MaxConnections, maxIdleConns, connMaxLifetime)
 }
 
 func getEnvWithDefault(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
 		return value
-	}
-	return defaultValue
-}
-
-func getEnvIntWithDefault(key string, defaultValue int) int {
-	if value := os.Getenv(key); value != "" {
-		if intValue, err := strconv.Atoi(value); err == nil {
-			return intValue
-		}
-		log.Printf("⚠️  Invalid integer value for %s: %s, using default: %d", key, value, defaultValue)
 	}
 	return defaultValue
 }

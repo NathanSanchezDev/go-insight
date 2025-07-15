@@ -1,0 +1,19 @@
+database:
+  user: postgres
+  name: go_insight
+  port: 5432
+  max_connections: 25
+
+rate_limiting:
+  requests_per_minute: 60
+  window_minutes: 1
+
+features:
+  debug_logging: false
+  prometheus_enabled: true
+  jwt_auth_enabled: false
+
+monitoring:
+  prometheus:
+    path: "/metrics"
+    scrape_interval: "15s"

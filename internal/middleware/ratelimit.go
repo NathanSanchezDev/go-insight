@@ -1,19 +1,20 @@
 package middleware
 
 import (
+	"fmt"
 	"log"
 	"net"
 	"net/http"
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/NathanSanchezDev/go-insight/internal/config"
 )
 
 var (
 	rateLimitMap = make(map[string]*bucketInfo)
 	rateMutex    sync.RWMutex
-	maxRequests  = 60
-	windowTime   = time.Minute
 )
 
 type bucketInfo struct {
@@ -22,31 +23,37 @@ type bucketInfo struct {
 	mutex     sync.Mutex
 }
 
-func RateLimitMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/health" {
+func RateLimitMiddleware(cfg *config.Config) func(http.Handler) http.Handler {
+	maxRequests := cfg.RateLimit.RequestsPerMinute
+	windowTime := time.Duration(cfg.RateLimit.WindowMinutes) * time.Minute
+
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Path == "/health" {
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			clientIP := getClientIP(r)
+			allowed, remaining := isRequestAllowed(clientIP, maxRequests, windowTime)
+
+			w.Header().Set("X-RateLimit-Limit", strconv.Itoa(maxRequests))
+			w.Header().Set("X-RateLimit-Remaining", strconv.Itoa(remaining))
+
+			if !allowed {
+				log.Printf("🚦 Rate limit exceeded for IP %s", clientIP)
+				retryAfter := int(windowTime.Seconds())
+				w.Header().Set("Retry-After", strconv.Itoa(retryAfter))
+				http.Error(w, fmt.Sprintf(`{"error": "Rate limit exceeded", "limit": %d, "window": "%d minutes"}`, maxRequests, cfg.RateLimit.WindowMinutes), http.StatusTooManyRequests)
+				return
+			}
+
 			next.ServeHTTP(w, r)
-			return
-		}
-
-		clientIP := getClientIP(r)
-		allowed, remaining := isRequestAllowed(clientIP)
-
-		w.Header().Set("X-RateLimit-Limit", strconv.Itoa(maxRequests))
-		w.Header().Set("X-RateLimit-Remaining", strconv.Itoa(remaining))
-
-		if !allowed {
-			log.Printf("🚦 Rate limit exceeded for IP %s", clientIP)
-			w.Header().Set("Retry-After", "60")
-			http.Error(w, `{"error": "Rate limit exceeded", "limit": 60, "window": "1 minute"}`, http.StatusTooManyRequests)
-			return
-		}
-
-		next.ServeHTTP(w, r)
-	})
+		})
+	}
 }
 
-func isRequestAllowed(clientIP string) (bool, int) {
+func isRequestAllowed(clientIP string, maxRequests int, windowTime time.Duration) (bool, int) {
 	rateMutex.Lock()
 	defer rateMutex.Unlock()
 

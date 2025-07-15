@@ -9,20 +9,27 @@ import (
 	"time"
 
 	"github.com/NathanSanchezDev/go-insight/internal/api"
+	"github.com/NathanSanchezDev/go-insight/internal/config"
 	"github.com/NathanSanchezDev/go-insight/internal/db"
 	"github.com/NathanSanchezDev/go-insight/internal/middleware"
 )
 
 func main() {
-	db.InitDB()
+	// Load config
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatal("Failed to load config:", err)
+	}
+
+	// Pass config to subsystems
+	db.InitDB(cfg)
 	router := api.SetupRoutes()
 
-	router.Use(middleware.LimitBodySize(1 << 20))
-	router.Use(middleware.RateLimitMiddleware)
+	router.Use(middleware.RateLimitMiddleware(cfg))
 	router.Use(conditionalAuthMiddleware)
-	router.Use(loggingMiddleware)
+	router.Use(loggingMiddleware(cfg))
 
-	port := getEnvPort(8080)
+	port := getEnvPort(8080) // Keep this as env since it's deployment-specific
 
 	fmt.Printf("🚀 Server started on port %d\n", port)
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), router))
@@ -40,12 +47,19 @@ func conditionalAuthMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func loggingMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		start := time.Now()
-		next.ServeHTTP(w, r)
-		log.Printf("%s %s %s", r.Method, r.RequestURI, time.Since(start))
-	})
+func loggingMiddleware(cfg *config.Config) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			start := time.Now()
+			next.ServeHTTP(w, r)
+
+			if cfg.Features.DebugLogging {
+				log.Printf("DEBUG: %s %s %s", r.Method, r.RequestURI, time.Since(start))
+			} else {
+				log.Printf("%s %s %s", r.Method, r.RequestURI, time.Since(start))
+			}
+		})
+	}
 }
 
 func getEnvPort(defaultPort int) int {

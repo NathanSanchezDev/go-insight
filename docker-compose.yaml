@@ -33,28 +33,16 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      # Database Configuration
-      DB_USER: ${DB_USER:-postgres}
+      # Secrets & deployment-specific only
       DB_PASS: ${DB_PASS:-password}
-      DB_NAME: ${DB_NAME:-go_insight}
-      DB_HOST: postgres
-      DB_PORT: 5432
-      
-      # Application Configuration
-      PORT: ${PORT:-8080}
       API_KEY: ${API_KEY:-your-secure-api-key-here}
-      
-      # Rate Limiting
-      RATE_LIMIT_REQUESTS: ${RATE_LIMIT_REQUESTS:-60}
-      RATE_LIMIT_WINDOW: ${RATE_LIMIT_WINDOW:-1}
-      
-      # Connection Pool Configuration
-      DB_MAX_OPEN_CONNS: 25
-      DB_MAX_IDLE_CONNS: 10
-      DB_CONN_MAX_LIFETIME: 300
-      
-      # Optional JWT Configuration
       JWT_SECRET: ${JWT_SECRET:-}
+      
+      # Environment-specific
+      DB_HOST: postgres
+      PORT: ${PORT:-8080}
+      ENVIRONMENT: ${ENVIRONMENT:-production}
+      
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:${PORT:-8080}/health"]
       interval: 30s

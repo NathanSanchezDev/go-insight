@@ -34,7 +34,8 @@ WORKDIR /app
 COPY --from=builder /app/go-insight .
 COPY --from=builder /app/internal/db/migrations ./internal/db/migrations
 
-# Copy .env.example as .env for container defaults (optional)
+# Copy config files
+COPY --from=builder /app/config ./config
 COPY --from=builder /app/.env.example ./.env
 
 # Change ownership to non-root user
@@ -43,21 +44,12 @@ RUN chown -R appuser:appgroup /app
 # Switch to non-root user
 USER appuser
 
-# Environment variables with defaults
-ENV PORT=8080
-ENV DB_HOST=postgres
-ENV DB_PORT=5432
-ENV DB_USER=postgres
-ENV DB_NAME=go_insight
-ENV RATE_LIMIT_REQUESTS=60
-ENV RATE_LIMIT_WINDOW=1
-
-# Health check
+# Health check (using default port, will be overridden by actual PORT env)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:${PORT}/health || exit 1
+    CMD wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1
 
-# Expose port using environment variable
-EXPOSE ${PORT}
+# Expose default port (actual port set via ENV at runtime)
+EXPOSE 8080
 
 # Run the application
 CMD ["./go-insight"]
