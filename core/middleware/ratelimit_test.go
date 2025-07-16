@@ -11,10 +11,10 @@ func TestGetClientIP(t *testing.T) {
 		t.Errorf("expected X-Forwarded-For to be used, got %s", ip)
 	}
 
-       r = &http.Request{Header: http.Header{"X-Real-Ip": []string{"2.3.4.5"}}}
-        if ip := getClientIP(r); ip != "2.3.4.5" {
-                t.Errorf("expected X-Real-IP to be used, got %s", ip)
-        }
+	r = &http.Request{Header: http.Header{"X-Real-Ip": []string{"2.3.4.5"}}}
+	if ip := getClientIP(r); ip != "2.3.4.5" {
+		t.Errorf("expected X-Real-IP to be used, got %s", ip)
+	}
 
 	r = &http.Request{RemoteAddr: "3.4.5.6:789"}
 	if ip := getClientIP(r); ip != "3.4.5.6" {

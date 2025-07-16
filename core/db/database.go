@@ -7,7 +7,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/NathanSanchezDev/go-insight/internal/config"
+	"github.com/NathanSanchezDev/go-insight/config"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/joho/godotenv"
 )
@@ -124,10 +124,10 @@ func runMigrations() {
 	log.Println("🔄 Running database migrations...")
 
 	migrationFiles := []string{
-		"internal/db/migrations/001_create_logs_table.sql",
-		"internal/db/migrations/002_create_metrics_table.sql",
-		"internal/db/migrations/003_create_spans_and_traces_table.sql",
-		"internal/db/migrations/004_add_performance_indexes.sql",
+		"core/db/migrations/001_create_logs_table.sql",
+		"core/db/migrations/002_create_metrics_table.sql",
+		"core/db/migrations/003_create_spans_and_traces_table.sql",
+		"core/db/migrations/004_add_performance_indexes.sql",
 	}
 
 	successCount := 0

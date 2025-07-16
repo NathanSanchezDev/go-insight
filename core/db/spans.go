@@ -3,7 +3,7 @@ package db
 import (
 	"log"
 
-	"github.com/NathanSanchezDev/go-insight/internal/models"
+	"github.com/NathanSanchezDev/go-insight/core/models"
 )
 
 func StoreSpan(span models.Span) error {

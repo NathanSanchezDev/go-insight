@@ -8,10 +8,10 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/NathanSanchezDev/go-insight/internal/api"
-	"github.com/NathanSanchezDev/go-insight/internal/config"
-	"github.com/NathanSanchezDev/go-insight/internal/db"
-	"github.com/NathanSanchezDev/go-insight/internal/middleware"
+	"github.com/NathanSanchezDev/go-insight/config"
+	"github.com/NathanSanchezDev/go-insight/core/api"
+	"github.com/NathanSanchezDev/go-insight/core/db"
+	"github.com/NathanSanchezDev/go-insight/core/middleware"
 )
 
 func main() {
@@ -62,7 +62,7 @@ func loggingMiddleware(cfg *config.Config) func(http.Handler) http.Handler {
 }
 
 func getEnvPort(defaultPort int) int {
-	portStr := os.Getenv("PORT")
+	portStr := os.Getenv("GO_PORT")
 	if portStr != "" {
 		port, err := strconv.Atoi(portStr)
 		if err == nil {

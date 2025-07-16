@@ -11,8 +11,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/NathanSanchezDev/go-insight/internal/db"
-	"github.com/NathanSanchezDev/go-insight/internal/models"
+	"github.com/NathanSanchezDev/go-insight/core/db"
+	"github.com/NathanSanchezDev/go-insight/core/models"
 )
 
 func GetLogs(serviceName, logLevel, messageContains string, startTime, endTime time.Time, limit, offset int) ([]models.Log, error) {

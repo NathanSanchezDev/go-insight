@@ -3,7 +3,7 @@ package api
 import (
 	"testing"
 
-	"github.com/NathanSanchezDev/go-insight/internal/models"
+	"github.com/NathanSanchezDev/go-insight/core/models"
 )
 
 func TestValidateLogEntry(t *testing.T) {

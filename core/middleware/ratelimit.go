@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/NathanSanchezDev/go-insight/internal/config"
+	"github.com/NathanSanchezDev/go-insight/config"
 )
 
 var (
