@@ -72,7 +72,7 @@ func GetLogs(serviceName, logLevel, messageContains string, startTime, endTime t
 	}
 	defer rows.Close()
 
-	var logs []models.Log
+	logs := make([]models.Log, 0)
 
 	for rows.Next() {
 		var logEntry models.Log
@@ -102,6 +102,11 @@ func GetLogs(serviceName, logLevel, messageContains string, startTime, endTime t
 		}
 
 		logs = append(logs, logEntry)
+	}
+
+	if err = rows.Err(); err != nil {
+		log.Printf("❌ Row iteration error: %v", err)
+		return nil, err
 	}
 
 	return logs, nil
@@ -231,12 +236,21 @@ func GetLogsHandler(w http.ResponseWriter, r *http.Request) {
 
 	logs, err := GetLogs(serviceName, logLevel, messageContains, startTime, endTime, limit, offset)
 	if err != nil {
+		log.Printf("❌ GetLogs failed: %v", err)
 		http.Error(w, "Failed to fetch logs", http.StatusInternalServerError)
 		return
 	}
 
+	if logs == nil {
+		logs = make([]models.Log, 0)
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(logs)
+	if err := json.NewEncoder(w).Encode(logs); err != nil {
+		log.Printf("❌ JSON encoding failed: %v", err)
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		return
+	}
 }
 
 func PostLogHandler(w http.ResponseWriter, r *http.Request) {
