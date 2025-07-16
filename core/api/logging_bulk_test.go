@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/NathanSanchezDev/go-insight/internal/models"
+	"github.com/NathanSanchezDev/go-insight/core/models"
 )
 
 // TestPostLogsBulkHandlerSuccess verifies that the handler accepts valid input

@@ -66,24 +66,24 @@ cp .env.example .env
 ### 2. Run with Docker (Recommended)
 ```bash
 # Start the entire stack
-docker-compose up -d --build
+docker compose up -d --build
 
 # Verify health
-curl http://localhost:8001/health
+curl http://localhost:8080/health
 # Returns: OK
 ```
 
 ### 3. Test API
 ```bash
 # Send a test log
-curl -X POST http://localhost:8001/logs \
+curl -X POST http://localhost:8080/logs \
   -H "X-API-Key: your-api-key" \
   -H "Content-Type: application/json" \
   -d '{"service_name": "test-service", "log_level": "INFO", "message": "Hello Go-Insight!"}'
 
 # Query logs
 curl -H "X-API-Key: your-api-key" \
-  "http://localhost:8001/logs?limit=5"
+  "http://localhost:8080/logs?limit=5"
 ```
 
 ### Alternative: Local Development
@@ -104,16 +104,16 @@ Go-Insight includes a complete Docker Compose setup with:
 
 ```bash
 # View container status
-docker-compose ps
+docker compose ps
 
 # View application logs  
-docker-compose logs go-insight
+docker compose logs backend
 
 # View database logs
-docker-compose logs postgres
+docker compose logs postgres
 
 # Stop all services
-docker-compose down
+docker compose down
 ```
 
 ### Kubernetes Deployment
@@ -132,7 +132,7 @@ DB_HOST=postgres  # Use 'localhost' for local development
 DB_PORT=5432
 
 # Application settings
-PORT=8001
+PORT=8080
 API_KEY=your_secure_api_key
 
 # Rate limiting
@@ -147,7 +147,7 @@ RATE_LIMIT_WINDOW=1
 ### Authentication
 ```bash
 # All data endpoints require API key
-curl -H "X-API-Key: your-api-key" http://localhost:8001/logs
+curl -H "X-API-Key: your-api-key" http://localhost:8080/logs
 
 # Rate limiting headers included in responses
 # X-RateLimit-Limit: 60
@@ -157,13 +157,13 @@ curl -H "X-API-Key: your-api-key" http://localhost:8001/logs
 ### Ingest Data
 ```bash
 # Send logs
-curl -X POST http://localhost:8001/logs \
+curl -X POST http://localhost:8080/logs \
   -H "X-API-Key: your-api-key" \
   -H "Content-Type: application/json" \
   -d '{"service_name": "api-service", "log_level": "INFO", "message": "User login successful"}'
 
 # Send metrics  
-curl -X POST http://localhost:8001/metrics \
+curl -X POST http://localhost:8080/metrics \
   -H "X-API-Key: your-api-key" \
   -H "Content-Type: application/json" \
   -d '{"service_name": "api-service", "path": "/login", "method": "POST", "status_code": 200, "duration_ms": 45.7, "source": {"language": "go", "framework": "gin", "version": "1.9.1"}}'
@@ -173,15 +173,15 @@ curl -X POST http://localhost:8001/metrics \
 ```bash
 # Filter logs by service
 curl -H "X-API-Key: your-api-key" \
-  "http://localhost:8001/logs?service=api-service&level=ERROR&limit=10"
+  "http://localhost:8080/logs?service=api-service&level=ERROR&limit=10"
 
 # Get performance metrics
 curl -H "X-API-Key: your-api-key" \
-  "http://localhost:8001/metrics?service=api-service&min_status=400"
+  "http://localhost:8080/metrics?service=api-service&min_status=400"
 
 # Get distributed traces
 curl -H "X-API-Key: your-api-key" \
-  "http://localhost:8001/traces?service=api-service&limit=10"
+  "http://localhost:8080/traces?service=api-service&limit=10"
 ```
 
 ## Performance Benchmarks

@@ -1,12 +1,12 @@
 // ui/src/lib/api.ts
 
-const API_BASE_URL = '/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
 
 // Types for our API responses
 export interface Log {
   id: number;
   service_name: string;
-  log_level: 'DEBUG' | 'INFO' | 'WARN' | 'ERROR' | 'FATAL';
+  log_level: "DEBUG" | "INFO" | "WARN" | "ERROR" | "FATAL";
   message: string;
   timestamp: string;
   trace_id?: { String: string; Valid: boolean };
@@ -86,19 +86,22 @@ class ApiClient {
   constructor(baseUrl: string = API_BASE_URL) {
     this.baseUrl = baseUrl;
     // For now, we'll handle auth later
-    this.apiKey = 'your-secure-api-key-here'; // TODO: Make this configurable
+    this.apiKey = "your-secure-api-key-here"; // TODO: Make this configurable
   }
 
-  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  private async request<T>(
+    endpoint: string,
+    options: RequestInit = {},
+  ): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
-    
+
     const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      ...options.headers as Record<string, string>,
+      "Content-Type": "application/json",
+      ...(options.headers as Record<string, string>),
     };
 
     if (this.apiKey) {
-      headers['X-API-Key'] = this.apiKey;
+      headers["X-API-Key"] = this.apiKey;
     }
 
     const response = await fetch(url, {
@@ -107,7 +110,9 @@ class ApiClient {
     });
 
     if (!response.ok) {
-      throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+      throw new Error(
+        `API request failed: ${response.status} ${response.statusText}`,
+      );
     }
 
     return response.json();
@@ -115,15 +120,15 @@ class ApiClient {
 
   private buildQueryString(params: Record<string, any>): string {
     const searchParams = new URLSearchParams();
-    
+
     Object.entries(params).forEach(([key, value]) => {
-      if (value !== undefined && value !== null && value !== '') {
+      if (value !== undefined && value !== null && value !== "") {
         searchParams.append(key, value.toString());
       }
     });
 
     const queryString = searchParams.toString();
-    return queryString ? `?${queryString}` : '';
+    return queryString ? `?${queryString}` : "";
   }
 
   // Health check (no auth required)
@@ -139,8 +144,8 @@ class ApiClient {
   }
 
   async createLog(log: Partial<Log>): Promise<Log> {
-    return this.request<Log>('/logs', {
-      method: 'POST',
+    return this.request<Log>("/logs", {
+      method: "POST",
       body: JSON.stringify(log),
     });
   }
@@ -152,8 +157,8 @@ class ApiClient {
   }
 
   async createMetric(metric: Partial<Metric>): Promise<Metric> {
-    return this.request<Metric>('/metrics', {
-      method: 'POST',
+    return this.request<Metric>("/metrics", {
+      method: "POST",
       body: JSON.stringify(metric),
     });
   }
@@ -165,15 +170,15 @@ class ApiClient {
   }
 
   async createTrace(trace: Partial<Trace>): Promise<Trace> {
-    return this.request<Trace>('/traces', {
-      method: 'POST',
+    return this.request<Trace>("/traces", {
+      method: "POST",
       body: JSON.stringify(trace),
     });
   }
 
   async endTrace(traceId: string): Promise<Trace> {
     return this.request<Trace>(`/traces/${traceId}/end`, {
-      method: 'POST',
+      method: "POST",
     });
   }
 
@@ -183,15 +188,15 @@ class ApiClient {
   }
 
   async createSpan(span: Partial<Span>): Promise<Span> {
-    return this.request<Span>('/spans', {
-      method: 'POST',
+    return this.request<Span>("/spans", {
+      method: "POST",
       body: JSON.stringify(span),
     });
   }
 
   async endSpan(spanId: string): Promise<Span> {
     return this.request<Span>(`/spans/${spanId}/end`, {
-      method: 'POST',
+      method: "POST",
     });
   }
 
@@ -210,16 +215,17 @@ class ApiClient {
       this.getTraces({ limit: 100 }),
     ]);
 
-    const errorCount = logs.filter(log => log.log_level === 'ERROR').length;
-    const avgResponseTime = metrics.length > 0 
-      ? metrics.reduce((sum, m) => sum + m.duration_ms, 0) / metrics.length 
-      : 0;
-    const activeTraces = traces.filter(t => !t.end_time?.Valid).length;
-    
+    const errorCount = logs.filter((log) => log.log_level === "ERROR").length;
+    const avgResponseTime =
+      metrics.length > 0
+        ? metrics.reduce((sum, m) => sum + m.duration_ms, 0) / metrics.length
+        : 0;
+    const activeTraces = traces.filter((t) => !t.end_time?.Valid).length;
+
     const serviceSet = new Set([
-      ...logs.map(l => l.service_name),
-      ...metrics.map(m => m.service_name),
-      ...traces.map(t => t.service_name),
+      ...logs.map((l) => l.service_name),
+      ...metrics.map((m) => m.service_name),
+      ...traces.map((t) => t.service_name),
     ]);
     const topServices = Array.from(serviceSet).slice(0, 5);
 

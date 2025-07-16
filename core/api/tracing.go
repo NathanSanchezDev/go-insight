@@ -11,9 +11,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/NathanSanchezDev/go-insight/internal/db"
-	"github.com/NathanSanchezDev/go-insight/internal/models"
-	"github.com/NathanSanchezDev/go-insight/internal/observability"
+	"github.com/NathanSanchezDev/go-insight/core/db"
+	"github.com/NathanSanchezDev/go-insight/core/models"
+	"github.com/NathanSanchezDev/go-insight/core/observability"
 	"github.com/gorilla/mux"
 )
 

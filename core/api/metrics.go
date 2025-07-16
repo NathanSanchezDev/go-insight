@@ -10,8 +10,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/NathanSanchezDev/go-insight/internal/db"
-	"github.com/NathanSanchezDev/go-insight/internal/models"
+	"github.com/NathanSanchezDev/go-insight/core/db"
+	"github.com/NathanSanchezDev/go-insight/core/models"
 )
 
 func GetMetrics(serviceName, path, method string, minStatus, maxStatus int, limit, offset int) ([]models.EndpointMetric, error) {
