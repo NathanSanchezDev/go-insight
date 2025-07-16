@@ -2,58 +2,63 @@ version: "3.8"
 
 services:
   postgres:
-    image: postgres:15-alpine
-    container_name: go_insight_db
-    restart: unless-stopped
+    image: postgres:${POSTGRES_VERSION}
     environment:
-      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASS}
-      POSTGRES_DB: ${DB_NAME:-go_insight}
-    ports:
-      - "${DB_PORT:-5432}:5432"
+      POSTGRES_DB: ${DB_NAME}
     volumes:
       - pgdata:/var/lib/postgresql/data
-      - ./internal/db/migrations:/internal/db/migrations
+      - ./core/db/migrations:/migrations
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-go_insight}"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: ${HEALTHCHECK_INTERVAL}
+      timeout: ${HEALTHCHECK_TIMEOUT}
+      retries: ${HEALTHCHECK_RETRIES}
+      start_period: ${HEALTHCHECK_START_PERIOD}
 
-  go-insight:
-    build: 
+  backend:
+    build:
       context: .
-      dockerfile: Dockerfile
-    container_name: go_insight_app
-    restart: unless-stopped
-    ports:
-      - "${PORT:-8080}:${PORT:-8080}"
+      dockerfile: deployments/Dockerfile.backend
     depends_on:
       postgres:
         condition: service_healthy
     environment:
-      # Secrets & deployment-specific only
-      DB_PASS: ${DB_PASS:-password}
-      API_KEY: ${API_KEY:-your-secure-api-key-here}
-      JWT_SECRET: ${JWT_SECRET:-}
-      
-      # Environment-specific
+      DB_USER: ${DB_USER}
+      DB_PASS: ${DB_PASS}
+      DB_NAME: ${DB_NAME}
       DB_HOST: postgres
-      PORT: ${PORT:-8080}
-      ENVIRONMENT: ${ENVIRONMENT:-production}
-      
+      DB_PORT: ${DB_PORT}
+      GO_PORT: ${GO_PORT}
+      GO_ENVIRONMENT: ${GO_ENVIRONMENT}
+    ports:
+      - "${GO_PORT}:${GO_PORT}"
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:${PORT:-8080}/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:${GO_PORT}/health"]
+      interval: ${HEALTHCHECK_INTERVAL}
+      timeout: ${HEALTHCHECK_TIMEOUT}
+      retries: ${HEALTHCHECK_RETRIES}
+      start_period: ${HEALTHCHECK_START_PERIOD}
+
+  frontend:
+    build:
+      context: .
+      dockerfile: deployments/Dockerfile.frontend
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "3000:80"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost"]
+      interval: ${HEALTHCHECK_INTERVAL}
+      timeout: ${HEALTHCHECK_TIMEOUT}
+      retries: ${HEALTHCHECK_RETRIES}
+      start_period: ${HEALTHCHECK_START_PERIOD}
 
 volumes:
   pgdata:
-    driver: local
 
-networks:
-  default:
-    name: go_insight_network
