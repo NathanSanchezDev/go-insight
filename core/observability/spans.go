@@ -6,8 +6,8 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/NathanSanchezDev/go-insight/internal/db"
-	"github.com/NathanSanchezDev/go-insight/internal/models"
+	"github.com/NathanSanchezDev/go-insight/core/db"
+	"github.com/NathanSanchezDev/go-insight/core/models"
 )
 
 func StartSpan(traceID, parentID, service, operation string) models.Span {
